@@ -17,3 +17,17 @@ export { defaultFilters } from './ProductFilters';
 
 export { ProtectedRoute } from './ProtectedRoute';
 export { AdminRoute } from './AdminRoute';
+
+export { ImageGallery } from './ImageGallery';
+export type { ImageGalleryProps } from './ImageGallery';
+
+export { SizeGuide } from './SizeGuide';
+export type { SizeGuideProps } from './SizeGuide';
+
+export { MaterialInfo } from './MaterialInfo';
+export type { MaterialInfoProps } from './MaterialInfo';
+
+export { RecentlyViewedProducts } from './RecentlyViewedProducts';
+export type { RecentlyViewedProductsProps } from './RecentlyViewedProducts';
+
+export { CompareBar } from './CompareBar';

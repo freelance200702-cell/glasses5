@@ -197,7 +197,7 @@ export function ProductDetailPage() {
                 Try On
               </Button>
               <button
-                onClick={() => toggleCompare(product.id)}
+                onClick={() => toggleCompare(product)}
                 disabled={!isComparing && isFull}
                 aria-label={isComparing ? 'Remove from comparison' : 'Add to comparison'}
                 aria-pressed={isComparing}

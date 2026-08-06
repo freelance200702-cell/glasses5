@@ -9,3 +9,11 @@ export type { CartContextValue } from './cart/CartContext';
 export { WishlistProvider } from './wishlist/WishlistProvider';
 export { useWishlist } from './wishlist/WishlistProvider';
 export type { WishlistContextValue } from './wishlist/WishlistProvider';
+
+export { CompareProvider } from './compare/CompareProvider';
+export { useCompare } from './compare/CompareProvider';
+export type { CompareContextValue } from './compare/CompareContext';
+
+export { RecentlyViewedProvider } from './recently-viewed/RecentlyViewedProvider';
+export { useRecentlyViewed } from './recently-viewed/RecentlyViewedProvider';
+export type { RecentlyViewedContextValue } from './recently-viewed/RecentlyViewedContext';
