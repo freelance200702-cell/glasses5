@@ -26,8 +26,13 @@ export interface ProductQuery {
   materials?: string[];
   genders?: string[];
   lensTypes?: string[];
+  brands?: string[];
+  colors?: string[];
   search?: string;
   onSale?: boolean;
+  inStock?: boolean;
+  minPriceCents?: number;
+  maxPriceCents?: number;
   sort?: 'newest' | 'price-asc' | 'price-desc' | 'rating';
   page?: number;
   pageSize?: number;
@@ -170,7 +175,25 @@ export async function fetchProducts(query: ProductQuery = {}): Promise<ProductLi
   if (query.materials?.length) req = req.in('material_id', await idsForSlugs('materials', query.materials));
   if (query.genders?.length) req = req.in('gender', query.genders);
   if (query.lensTypes?.length) req = req.in('lens_type', query.lensTypes);
+  if (query.brands?.length) {
+    const { data: brandRows } = await supabase.from('brands').select('id').in('slug', query.brands);
+    const brandIds = (brandRows ?? []).map((b) => b.id);
+    req = req.in('brand_id', brandIds.length ? brandIds : ['00000000-0000-0000-0000-000000000000']);
+  }
+  if (query.colors?.length) {
+    const { data: colorRows } = await supabase.from('colors').select('id').in('slug', query.colors);
+    const colorIds = (colorRows ?? []).map((c) => c.id);
+    const { data: variantLinks } = await supabase
+      .from('product_variants')
+      .select('product_id')
+      .in('color_id', colorIds.length ? colorIds : ['00000000-0000-0000-0000-000000000000']);
+    const productIds = Array.from(new Set((variantLinks ?? []).map((v) => v.product_id)));
+    req = req.in('id', productIds.length ? productIds : ['00000000-0000-0000-0000-000000000000']);
+  }
   if (query.onSale) req = req.not('compare_at_price_cents', 'is', null);
+  if (query.inStock) req = req.gt('variants.stock', 0);
+  if (query.minPriceCents !== undefined) req = req.gte('price_cents', query.minPriceCents);
+  if (query.maxPriceCents !== undefined) req = req.lte('price_cents', query.maxPriceCents);
   if (query.search) {
     req = req.or(`name.ilike.%${query.search}%,description.ilike.%${query.search}%`);
   }

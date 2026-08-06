@@ -12,6 +12,7 @@ export { SearchPage } from './SearchPage';
 export { AboutPage } from './AboutPage';
 export { ContactPage } from './ContactPage';
 export { NotFoundPage } from './NotFoundPage';
+export { ComparePage } from './ComparePage';
 
 export { AdminDashboardPage } from './admin/AdminDashboardPage';
 export { AdminProductsPage } from './admin/AdminProductsPage';

@@ -3,10 +3,10 @@ import { useParams } from 'react-router-dom';
 import { SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { ProductCard, ProductFilters, defaultFilters } from '@/components/shared';
 import type { FilterState, SortOption } from '@/components/shared';
-import { fetchProducts } from '@/services/productService';
+import { fetchProducts, fetchBrands, fetchColors } from '@/services/productService';
 import { getCategoryBySlug } from '@/data/catalog';
 import { cx } from '@/lib/utils';
-import type { Product } from '@/types';
+import type { Product, Brand, Color } from '@/types';
 
 const sortOptions: { value: SortOption; label: string }[] = [
   { value: 'newest', label: 'Newest' },
@@ -19,6 +19,8 @@ export function ShopPage() {
   const { categorySlug } = useParams();
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [colors, setColors] = useState<Color[]>([]);
   const [sortOpen, setSortOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,7 +36,12 @@ export function ShopPage() {
       materials: filters.materials,
       genders: filters.genders,
       lensTypes: filters.lensTypes,
+      brands: filters.brands,
+      colors: filters.colors,
       onSale: filters.onSale,
+      inStock: filters.inStock,
+      minPriceCents: filters.minPriceCents ?? undefined,
+      maxPriceCents: filters.maxPriceCents ?? undefined,
       sort: filters.sort,
     })
       .then((result) => {
@@ -48,6 +55,11 @@ export function ShopPage() {
       });
     return () => { active = false; };
   }, [categorySlug, filters]);
+
+  useEffect(() => {
+    fetchBrands().then(setBrands).catch(() => {});
+    fetchColors().then(setColors).catch(() => {});
+  }, []);
 
   const title = category ? category.name : 'All Eyewear';
   const subtitle = category ? category.description : 'Explore our full collection of premium frames.';
@@ -71,6 +83,8 @@ export function ShopPage() {
             filters={filters}
             onChange={setFilters}
             className="w-64 shrink-0"
+            brands={brands}
+            colors={colors}
           />
 
           <div className="lg:hidden">
@@ -88,6 +102,8 @@ export function ShopPage() {
             onChange={setFilters}
             mobileOpen={mobileOpen}
             onCloseMobile={() => setMobileOpen(false)}
+            brands={brands}
+            colors={colors}
           />
 
           <div className="min-w-0 flex-1">

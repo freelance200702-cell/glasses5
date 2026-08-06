@@ -1,14 +1,19 @@
 import { SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { cx } from '@/lib/utils';
-import type { FrameShape, FrameMaterial, GenderTarget, LensType } from '@/types';
+import type { FrameShape, FrameMaterial, GenderTarget, LensType, Brand, Color } from '@/types';
 
 export interface FilterState {
   shapes: FrameShape[];
   materials: FrameMaterial[];
   genders: GenderTarget[];
   lensTypes: LensType[];
+  brands: string[];
+  colors: string[];
   onSale: boolean;
+  inStock: boolean;
+  minPriceCents: number | null;
+  maxPriceCents: number | null;
   sort: SortOption;
 }
 
@@ -19,9 +24,18 @@ export const defaultFilters: FilterState = {
   materials: [],
   genders: [],
   lensTypes: [],
+  brands: [],
+  colors: [],
   onSale: false,
+  inStock: false,
+  minPriceCents: null,
+  maxPriceCents: null,
   sort: 'newest',
 };
+
+const PRICE_MIN = 0;
+const PRICE_MAX = 30000;
+const PRICE_STEP = 500;
 
 interface FilterGroupProps {
   title: string;
@@ -64,6 +78,8 @@ export interface ProductFiltersProps {
   className?: string;
   mobileOpen?: boolean;
   onCloseMobile?: () => void;
+  brands?: Brand[];
+  colors?: Color[];
 }
 
 const shapeOptions: { value: string; label: string }[] = [
@@ -97,8 +113,8 @@ const lensOptions: { value: string; label: string }[] = [
   { value: 'non-prescription', label: 'Non-Prescription' },
 ];
 
-export function ProductFilters({ filters, onChange, className, mobileOpen, onCloseMobile }: ProductFiltersProps) {
-  const toggle = (key: keyof Omit<FilterState, 'sort' | 'onSale'>, value: string) => {
+export function ProductFilters({ filters, onChange, className, mobileOpen, onCloseMobile, brands = [], colors = [] }: ProductFiltersProps) {
+  const toggle = (key: keyof Pick<FilterState, 'shapes' | 'materials' | 'genders' | 'lensTypes' | 'brands' | 'colors'>, value: string) => {
     const current = filters[key] as string[];
     const next = current.includes(value)
       ? current.filter((v) => v !== value)
@@ -107,6 +123,15 @@ export function ProductFilters({ filters, onChange, className, mobileOpen, onClo
   };
 
   const reset = () => onChange(defaultFilters);
+
+  const priceLabel = (() => {
+    const min = filters.minPriceCents ?? PRICE_MIN;
+    const max = filters.maxPriceCents ?? PRICE_MAX;
+    const fmt = (cents: number) => `${(cents / 100).toFixed(0)}`;
+    if (min === PRICE_MIN && max === PRICE_MAX) return 'All prices';
+    if (max === PRICE_MAX) return `${fmt(min)}+`;
+    return `${fmt(min)} – ${fmt(max)}`;
+  })();
 
   const content = (
     <div className="flex flex-col">
@@ -149,7 +174,83 @@ export function ProductFilters({ filters, onChange, className, mobileOpen, onClo
         onToggle={(v) => toggle('lensTypes', v)}
       />
 
+      {/* Price range */}
       <div className="py-5">
+        <h3 className="mb-3 text-sm font-semibold text-ink-900">Price range</h3>
+        <p className="mb-3 text-xs text-ink-500">{priceLabel}</p>
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min={PRICE_MIN}
+            max={PRICE_MAX}
+            step={PRICE_STEP}
+            value={filters.minPriceCents ?? PRICE_MIN}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              onChange({ ...filters, minPriceCents: val > PRICE_MIN ? val : null });
+            }}
+            className="flex-1 accent-primary-600"
+            aria-label="Minimum price"
+          />
+          <input
+            type="range"
+            min={PRICE_MIN}
+            max={PRICE_MAX}
+            step={PRICE_STEP}
+            value={filters.maxPriceCents ?? PRICE_MAX}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              onChange({ ...filters, maxPriceCents: val < PRICE_MAX ? val : null });
+            }}
+            className="flex-1 accent-primary-600"
+            aria-label="Maximum price"
+          />
+        </div>
+      </div>
+
+      {/* Brand filter */}
+      {brands.length > 0 && (
+        <FilterGroup
+          title="Brand"
+          options={brands.map((b) => ({ value: b.slug, label: b.name }))}
+          selected={filters.brands}
+          onToggle={(v) => toggle('brands', v)}
+        />
+      )}
+
+      {/* Color filter */}
+      {colors.length > 0 && (
+        <div className="py-5">
+          <h3 className="mb-3 text-sm font-semibold text-ink-900">Color</h3>
+          <div className="flex flex-wrap gap-2">
+            {colors.map((color) => {
+              const active = filters.colors.includes(color.slug);
+              return (
+                <button
+                  key={color.id}
+                  type="button"
+                  onClick={() => toggle('colors', color.slug)}
+                  aria-label={color.name}
+                  title={color.name}
+                  className={cx(
+                    'h-8 w-8 rounded-full border-2 transition-all',
+                    active ? 'border-primary-600 ring-2 ring-primary-200' : 'border-ink-200 hover:border-ink-400',
+                  )}
+                  style={color.hexCode ? { backgroundColor: color.hexCode } : undefined}
+                >
+                  {!color.hexCode && (
+                    <span className="text-xs text-ink-500">{color.name.charAt(0)}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Availability */}
+      <div className="space-y-3 py-5">
+        <h3 className="text-sm font-semibold text-ink-900">Availability</h3>
         <label className="flex cursor-pointer items-center gap-3">
           <input
             type="checkbox"
@@ -158,6 +259,15 @@ export function ProductFilters({ filters, onChange, className, mobileOpen, onClo
             className="h-5 w-5 rounded border-ink-300 text-primary-600 focus:ring-primary-500"
           />
           <span className="text-sm font-medium text-ink-700">On sale only</span>
+        </label>
+        <label className="flex cursor-pointer items-center gap-3">
+          <input
+            type="checkbox"
+            checked={filters.inStock}
+            onChange={(e) => onChange({ ...filters, inStock: e.target.checked })}
+            className="h-5 w-5 rounded border-ink-300 text-primary-600 focus:ring-primary-500"
+          />
+          <span className="text-sm font-medium text-ink-700">In stock only</span>
         </label>
       </div>
     </div>

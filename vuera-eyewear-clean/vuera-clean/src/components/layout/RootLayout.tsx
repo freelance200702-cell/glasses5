@@ -1,6 +1,7 @@
 import { Outlet, ScrollRestoration } from 'react-router-dom';
 import { Header } from './Header';
 import { Footer } from './Footer';
+import { CompareBar } from '@/components/shared';
 
 export function RootLayout() {
   return (
@@ -10,6 +11,7 @@ export function RootLayout() {
         <Outlet />
       </main>
       <Footer />
+      <CompareBar />
       <ScrollRestoration />
     </div>
   );

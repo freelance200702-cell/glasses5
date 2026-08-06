@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Heart, Scan, ShoppingBag, Star, Truck, RefreshCw, ShieldCheck, ChevronRight } from 'lucide-react';
+import { Heart, Scan, ShoppingBag, Star, Truck, RefreshCw, ShieldCheck, ChevronRight, GitCompare } from 'lucide-react';
 import { Button, Badge, Spinner } from '@/components/ui';
-import { RatingStars, ProductCard } from '@/components/shared';
-import { useCart, useWishlist } from '@/context';
+import { RatingStars, ProductCard, ImageGallery, SizeGuide, MaterialInfo, RecentlyViewedProducts } from '@/components/shared';
+import { useCart, useWishlist, useCompare, useRecentlyViewed } from '@/context';
 import { fetchProductBySlug } from '@/services/productService';
 import { getRelatedProducts } from '@/data/catalog';
 import { formatMoney, cx } from '@/lib/utils';
@@ -13,9 +13,10 @@ export function ProductDetailPage() {
   const { slug } = useParams();
   const { addItem } = useCart();
   const { has, toggle } = useWishlist();
+  const { has: hasCompare, toggle: toggleCompare, isFull } = useCompare();
+  const { add: addRecentlyViewed } = useRecentlyViewed();
 
   const [product, setProduct] = useState<Product | null | undefined>(undefined);
-  const [activeImage, setActiveImage] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [addedToCart, setAddedToCart] = useState(false);
@@ -29,6 +30,10 @@ export function ProductDetailPage() {
     });
     return () => { active = false; };
   }, [slug]);
+
+  useEffect(() => {
+    if (product) addRecentlyViewed(product.id);
+  }, [product, addRecentlyViewed]);
 
   if (product === undefined) {
     return (
@@ -50,6 +55,7 @@ export function ProductDetailPage() {
   }
 
   const isWishlisted = has(product.id);
+  const isComparing = hasCompare(product.id);
   const onSale =
     product.compareAtPriceCents !== null &&
     product.compareAtPriceCents < product.priceCents;
@@ -79,7 +85,7 @@ export function ProductDetailPage() {
   ];
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in pb-24">
       {/* Breadcrumb */}
       <div className="border-b border-ink-200 bg-white">
         <div className="container-app py-4">
@@ -96,39 +102,7 @@ export function ProductDetailPage() {
       <div className="container-app py-8 md:py-12">
         <div className="grid gap-8 md:grid-cols-2 md:gap-12">
           {/* Gallery */}
-          <div className="flex flex-col gap-4">
-            <div className="overflow-hidden rounded-2xl bg-ink-100">
-              {product.images[activeImage] && (
-                <img
-                  src={product.images[activeImage].url}
-                  alt={product.images[activeImage].altText ?? product.name}
-                  className="aspect-square w-full object-cover animate-fade-in"
-                  key={activeImage}
-                />
-              )}
-            </div>
-            {product.images.length > 1 && (
-              <div className="flex gap-3">
-                {product.images.map((img, idx) => (
-                  <button
-                    key={img.id}
-                    onClick={() => setActiveImage(idx)}
-                    className={cx(
-                      'overflow-hidden rounded-xl border-2 transition-colors',
-                      activeImage === idx ? 'border-primary-600' : 'border-transparent hover:border-ink-300',
-                    )}
-                  >
-                    <img
-                      src={img.url}
-                      alt={img.altText ?? product.name}
-                      className="h-20 w-20 object-cover"
-                      loading="lazy"
-                    />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <ImageGallery images={product.images} productName={product.name} />
 
           {/* Info */}
           <div className="flex flex-col">
@@ -160,9 +134,12 @@ export function ProductDetailPage() {
             {/* Color / variant options */}
             {product.variants.length > 1 && (
               <div className="mt-8">
-                <h3 className="mb-3 text-sm font-semibold text-ink-900">
-                  Color: <span className="font-normal text-ink-600">{variant?.name}</span>
-                </h3>
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-ink-900">
+                    Color: <span className="font-normal text-ink-600">{variant?.name}</span>
+                  </h3>
+                  <SizeGuide />
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {product.variants.map((v, idx) => (
                     <button
@@ -179,6 +156,12 @@ export function ProductDetailPage() {
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {product.variants.length <= 1 && (
+              <div className="mt-8">
+                <SizeGuide />
               </div>
             )}
 
@@ -207,12 +190,26 @@ export function ProductDetailPage() {
               </Button>
             </div>
 
-            {/* Try On + Wishlist */}
+            {/* Compare + Try On + Wishlist */}
             <div className="mt-3 flex gap-3">
               <Button size="lg" variant="outline" fullWidth>
                 <Scan size={18} />
                 Try On
               </Button>
+              <button
+                onClick={() => toggleCompare(product.id)}
+                disabled={!isComparing && isFull}
+                aria-label={isComparing ? 'Remove from comparison' : 'Add to comparison'}
+                aria-pressed={isComparing}
+                className={cx(
+                  'flex h-11 w-12 items-center justify-center rounded-lg border transition-colors',
+                  isComparing
+                    ? 'border-primary-600 bg-primary-50 text-primary-700'
+                    : 'border-ink-300 bg-white text-ink-600 hover:border-ink-400 disabled:opacity-30 disabled:cursor-not-allowed',
+                )}
+              >
+                <GitCompare size={18} />
+              </button>
               <button
                 onClick={() => toggle(product.id)}
                 aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
@@ -258,6 +255,11 @@ export function ProductDetailPage() {
           </div>
         </div>
 
+        {/* Material info */}
+        <div className="mt-8">
+          <MaterialInfo material={product.material} />
+        </div>
+
         {/* Reviews placeholder */}
         <div className="mt-16">
           <h2 className="text-2xl font-semibold tracking-tight">Reviews</h2>
@@ -283,6 +285,11 @@ export function ProductDetailPage() {
             </div>
           </div>
         )}
+
+        {/* Recently viewed */}
+        <div className="mt-16">
+          <RecentlyViewedProducts excludeId={product.id} />
+        </div>
       </div>
     </div>
   );
